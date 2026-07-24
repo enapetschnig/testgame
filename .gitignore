@@ -21,3 +21,4 @@ src/data/frojachOsm.json
 /final.mjs
 /diag*.mjs
 /shots/
+/filetest.mjs

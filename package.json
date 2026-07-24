@@ -6,6 +6,8 @@
   "description": "Frojach Drive - ein GTA-artiges Fahrspiel durch Frojach in der Steiermark, gebaut aus echten OpenStreetMap-Daten und Google Street View.",
   "scripts": {
     "dev": "vite",
+    "start": "npm run build && node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "build:single": "vite build && node scripts/bundle-single.mjs",

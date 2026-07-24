@@ -12,41 +12,60 @@ losfahren, hinschauen.
 
 ---
 
-## Losfahren
+## Am PC spielen
+
+### Der schnellste Weg
+
+`dist/frojach-drive.html` herunterladen und doppelklicken. Eine einzige
+Datei, kein Server, keine Installation. Fahren, Verkehr, Karte, Aufträge —
+alles läuft.
+
+Nur Street View nicht: Google verweigert den Dienst, wenn eine Seite über
+`file://` geöffnet wurde, weil es dann keinen gültigen Referrer gibt. Dafür
+braucht es `http://localhost` — also den nächsten Abschnitt.
+
+### Mit Street View
+
+**Windows:** `Frojach-Drive-starten.cmd` doppelklicken.
+**macOS/Linux:** `./start.sh` ausführen.
+
+Beim ersten Mal wird eingerichtet und gebaut, das dauert eine Minute. Danach
+startet das Spiel sofort und der Browser geht von selbst auf. Voraussetzung
+ist [Node.js](https://nodejs.org) (LTS-Fassung).
+
+Von Hand geht dasselbe so:
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173
+npm start            # baut und startet auf http://localhost:5180
 ```
 
-Für eine gebaute Fassung:
+Dann im Menü unter *„Google Street View verbinden"* den eigenen API-Key
+hinterlegen — siehe [Google Street View](#google-street-view) weiter unten.
+
+### Zum Entwickeln
 
 ```bash
-npm run build
-npm run preview
+npm run dev          # http://localhost:5173, lädt Änderungen sofort nach
 ```
 
-Der Build ist vollständig statisch (`dist/`) und läuft aus jedem Unterordner —
-GitHub Pages, ein einfacher Webserver oder ein entpacktes ZIP genügen.
-
-### Eine einzige Datei
+### Weitergeben
 
 ```bash
 npm run build:single      # dist/frojach-drive.html
 ```
 
-Alles in einer HTML-Datei: anklicken und fahren, ohne Server, ohne
-Nebendateien. Praktisch zum Weitergeben oder für itch.io.
-
-Mit `--embedded` verzichtet die Datei auf jeden Netzzugriff und nimmt die
-mitgelieferte Karte — für Umgebungen mit strenger Content-Security-Policy,
-wo Overpass und Google Maps ohnehin gesperrt wären. `--fragment` lässt den
-Rahmen (`doctype`/`html`/`head`/`body`) weg, wenn die Zielumgebung ihn selbst
-mitbringt:
+Packt den ganzen Build in eine HTML-Datei — praktisch zum Verschicken oder
+für itch.io. `--embedded` verzichtet zusätzlich auf jeden Netzzugriff und
+nimmt die mitgelieferte Karte, `--fragment` lässt den HTML-Rahmen weg:
 
 ```bash
 node scripts/bundle-single.mjs --embedded --fragment --out=spiel.html
 ```
+
+Der normale Build (`npm run build`) liegt in `dist/` und ist vollständig
+statisch — GitHub Pages, ein einfacher Webserver oder ein entpacktes ZIP
+genügen.
 
 ---
 
@@ -176,6 +195,7 @@ src/
 scripts/
   bake-map.mjs      OSM-Daten fest ins Projekt legen
   bundle-single.mjs Build in eine einzige HTML-Datei packen
+  serve.mjs         Kleiner Webserver ohne Abhängigkeiten
 ```
 
 Ein paar Entscheidungen, die im Code erklärt sind, aber hier den Rahmen geben:

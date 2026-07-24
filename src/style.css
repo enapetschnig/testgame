@@ -344,6 +344,12 @@ body {
   font-family: var(--mono);
 }
 
+.loader button {
+  margin-top: 12px;
+  font-size: 13px;
+  padding: 8px 14px;
+}
+
 .btn-row {
   display: flex;
   gap: 10px;

@@ -27,6 +27,7 @@ const dom = {
   btnPlay: document.getElementById('btn-play'),
   btnFreeroam: document.getElementById('btn-freeroam'),
   btnRefetch: document.getElementById('btn-refetch'),
+  btnSkip: document.getElementById('btn-skip'),
   btnResume: document.getElementById('btn-resume'),
   btnToMenu: document.getElementById('btn-tomenu'),
   pause: document.getElementById('pause'),
@@ -105,13 +106,28 @@ async function fetchMap({ force = false } = {}) {
 
   if (!map) {
     progress('Frojach wird von OpenStreetMap geholt …', 0.1);
+    // Nach fünf Sekunden anbieten, nicht länger zu warten. Overpass ist ein
+    // Gemeinschaftsdienst und manchmal überlastet — niemand soll deswegen
+    // vor einem Ladebalken festsitzen.
+    const ctrl = new AbortController();
+    const showSkip = setTimeout(() => {
+      if (dom.btnSkip) dom.btnSkip.hidden = false;
+    }, 5000);
+    const onSkip = () => ctrl.abort();
+    dom.btnSkip?.addEventListener('click', onSkip, { once: true });
+
     try {
       map = await loadOsmMap({
         force,
+        signal: ctrl.signal,
         onProgress: (msg, frac) => progress(msg, frac),
       });
     } catch (err) {
       console.warn('[map]', err);
+    } finally {
+      clearTimeout(showSkip);
+      dom.btnSkip?.removeEventListener('click', onSkip);
+      if (dom.btnSkip) dom.btnSkip.hidden = true;
     }
   }
 

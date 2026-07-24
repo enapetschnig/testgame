@@ -256,15 +256,25 @@ async function tryEndpoint(url, query, signal) {
   return json;
 }
 
+/** Zeitlimit je Spiegel und fuer den gesamten Versuch, in Millisekunden. */
+const ENDPOINT_TIMEOUT = 22000;
+const TOTAL_BUDGET = 50000;
+
 /**
  * Laedt die Karte. Reihenfolge: Cache -> Overpass (mit Spiegeln).
  *
+ * Wichtig ist das Gesamtbudget: vier Spiegel mit je 45 Sekunden koennen im
+ * schlechtesten Fall drei Minuten dauern, und so lange soll niemand vor dem
+ * Ladebalken sitzen. Ist das Budget aufgebraucht, wird abgebrochen und die
+ * mitgelieferte Karte verwendet.
+ *
  * @param {object} opts
- * @param {boolean} opts.force      Cache ignorieren und frisch laden
+ * @param {boolean} opts.force   Cache ignorieren und frisch laden
+ * @param {AbortSignal} opts.signal  Von aussen abbrechen (Knopf "Überspringen")
  * @param {(msg:string, frac:number)=>void} opts.onProgress
  * @returns {Promise<object|null>} Karte oder null, wenn nichts zu holen war
  */
-export async function loadOsmMap({ force = false, onProgress = () => {} } = {}) {
+export async function loadOsmMap({ force = false, signal = null, onProgress = () => {} } = {}) {
   if (!force) {
     const cached = await cacheRead(CACHE_KEY);
     if (cached && Date.now() - cached.at < CACHE_TTL_MS && cached.map) {
@@ -274,14 +284,21 @@ export async function loadOsmMap({ force = false, onProgress = () => {} } = {}) 
   }
 
   const query = buildQuery();
+  const deadline = Date.now() + TOTAL_BUDGET;
+
   for (let i = 0; i < ENDPOINTS.length; i++) {
+    if (signal?.aborted || Date.now() >= deadline) break;
     const url = ENDPOINTS[i];
     onProgress(`OpenStreetMap wird abgefragt (${i + 1}/${ENDPOINTS.length}) …`, 0.15 + i * 0.1);
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 45000);
+    const onAbort = () => ctrl.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const budget = Math.min(ENDPOINT_TIMEOUT, deadline - Date.now());
+    const timer = setTimeout(() => ctrl.abort(), budget);
     try {
       const raw = await tryEndpoint(url, query, ctrl.signal);
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       const map = normalize(raw);
       if (map.roads.length < 3) throw new Error('zu wenige Straßen in der Antwort');
       onProgress(
@@ -292,6 +309,7 @@ export async function loadOsmMap({ force = false, onProgress = () => {} } = {}) 
       return map;
     } catch (err) {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       console.warn('[overpass]', url, err.message);
     }
   }
