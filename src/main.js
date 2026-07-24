@@ -48,6 +48,17 @@ const dom = {
 let game = null;
 let mapData = null;
 
+/**
+ * Eingebetteter Modus.
+ *
+ * Die Einzeldatei-Fassung (`npm run build:single`) laeuft auch dort, wo
+ * ausgehende Verbindungen gesperrt sind — etwa in einer Vorschau mit
+ * strenger Content-Security-Policy. Dann gaebe es nur vier vergebliche
+ * Overpass-Anlaeufe und ein Street-View-Menue, das nichts tun kann.
+ * Also: mitgelieferte Karte verwenden und ehrlich hinschreiben, was fehlt.
+ */
+const EMBEDDED = !!globalThis.__FROJACH_EMBEDDED;
+
 function progress(text, frac) {
   dom.loadtext.textContent = text;
   dom.loadbar.style.width = `${Math.round(clamp01(frac) * 100)}%`;
@@ -85,6 +96,11 @@ async function fetchMap({ force = false } = {}) {
   if (!force) {
     progress('Mitgelieferte OpenStreetMap-Daten werden gelesen …', 0.06);
     map = await loadBundledOsm();
+  }
+
+  if (!map && EMBEDDED) {
+    progress('Mitgelieferte Karte wird verwendet', 0.6);
+    map = buildBakedMap();
   }
 
   if (!map) {
@@ -199,10 +215,10 @@ async function boot(startMode = 'play') {
     game.input.bindTouch(dom.touch);
   }
 
-  if (hasApiKey()) {
+  if (!EMBEDDED && hasApiKey()) {
     game.panorama.setMode('pip');
     game.loadFacades();
-  } else {
+  } else if (!EMBEDDED) {
     game.hud.subtitle(
       'Tipp: Google-Maps-API-Key im Menü hinterlegen — dann bekommen die Häuser ihre echten Fassaden.',
       6500,
@@ -229,8 +245,41 @@ dom.btnToMenu.addEventListener('click', () => {
 
 // -------------------------------------------------------------------- Start
 
+/**
+ * Im eingebetteten Modus fehlt der Netzzugriff. Statt Schaltflaechen
+ * anzubieten, die ins Leere laufen, wird gesagt, was hier geht und was
+ * nur in der lokalen Fassung.
+ */
+function applyEmbeddedNotice() {
+  if (!EMBEDDED) return;
+
+  const svPanel = document.getElementById('sv-panel');
+  if (svPanel) {
+    svPanel.open = false;
+    svPanel.querySelector('summary').innerHTML =
+      '🛣️ Google Street View <em>(nur in der lokalen Fassung)</em>';
+    svPanel.querySelectorAll('.field, .hint').forEach((el) => el.remove());
+    const p = document.createElement('p');
+    p.className = 'hint';
+    p.innerHTML =
+      'Diese eingebettete Fassung darf keine Verbindungen nach außen aufbauen. ' +
+      'Panorama-Fahrmodus und die echten Hausfassaden brauchen deshalb die ' +
+      'lokale Fassung: <b>npm install && npm run dev</b>, dann den eigenen ' +
+      'Google-Maps-API-Key im Menü hinterlegen.';
+    svPanel.appendChild(p);
+  }
+
+  if (dom.btnRefetch) {
+    dom.btnRefetch.disabled = true;
+    dom.btnRefetch.textContent = 'Nicht verfügbar (kein Netzzugriff)';
+    dom.btnRefetch.style.opacity = '0.5';
+    dom.btnRefetch.style.cursor = 'not-allowed';
+  }
+}
+
 (async function init() {
   refreshKeyState();
+  applyEmbeddedNotice();
   mapData = await fetchMap();
   progress('Bereit', 1);
   dom.loader.hidden = true;

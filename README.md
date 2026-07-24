@@ -29,6 +29,25 @@ npm run preview
 Der Build ist vollständig statisch (`dist/`) und läuft aus jedem Unterordner —
 GitHub Pages, ein einfacher Webserver oder ein entpacktes ZIP genügen.
 
+### Eine einzige Datei
+
+```bash
+npm run build:single      # dist/frojach-drive.html
+```
+
+Alles in einer HTML-Datei: anklicken und fahren, ohne Server, ohne
+Nebendateien. Praktisch zum Weitergeben oder für itch.io.
+
+Mit `--embedded` verzichtet die Datei auf jeden Netzzugriff und nimmt die
+mitgelieferte Karte — für Umgebungen mit strenger Content-Security-Policy,
+wo Overpass und Google Maps ohnehin gesperrt wären. `--fragment` lässt den
+Rahmen (`doctype`/`html`/`head`/`body`) weg, wenn die Zielumgebung ihn selbst
+mitbringt:
+
+```bash
+node scripts/bundle-single.mjs --embedded --fragment --out=spiel.html
+```
+
 ---
 
 ## Steuerung
@@ -155,7 +174,8 @@ src/
   game/         Schleife, Kamera, HUD, Verkehr, Aufträge, Ton
   streetview/   Maps-API, Panorama, Foto-Fassaden
 scripts/
-  bake-map.mjs  OSM-Daten fest ins Projekt legen
+  bake-map.mjs      OSM-Daten fest ins Projekt legen
+  bundle-single.mjs Build in eine einzige HTML-Datei packen
 ```
 
 Ein paar Entscheidungen, die im Code erklärt sind, aber hier den Rahmen geben:
