@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Frojach Drive — Steiermark</title>
+    <meta
+      name="description"
+      content="Fahre im GTA-Stil durch Frojach im oberen Murtal. Echte Straßen aus OpenStreetMap, echte Fassaden aus Google Street View."
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%9A%97%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+
+      <!-- Street-View-Panorama (Vollbild oder Bild-im-Bild) -->
+      <div id="streetview" class="sv-hidden"><div id="sv-pano"></div></div>
+
+      <!-- HUD -->
+      <div id="hud" hidden>
+        <div class="hud-topleft">
+          <div id="objective" class="objective"></div>
+        </div>
+
+        <div class="hud-topright">
+          <div id="clock" class="clock">08:00</div>
+          <div id="cash" class="cash">€ 0</div>
+          <div id="stars" class="stars"></div>
+        </div>
+
+        <div class="hud-bottomleft">
+          <canvas id="minimap" width="260" height="260"></canvas>
+          <div id="streetname" class="streetname">Murtalstraße</div>
+        </div>
+
+        <div class="hud-bottomright">
+          <div class="dash">
+            <canvas id="speedo" width="220" height="220"></canvas>
+            <div class="gearbox"><span id="gear">1</span></div>
+          </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+        <div id="subtitle" class="subtitle"></div>
+      </div>
+
+      <!-- Ladebildschirm / Hauptmenü -->
+      <div id="menu" class="menu">
+        <div class="menu-card">
+          <header>
+            <h1>FROJACH<span>DRIVE</span></h1>
+            <p class="sub">Oberes Murtal · Steiermark · 760&nbsp;m ü.&nbsp;A.</p>
+          </header>
+
+          <div id="loader" class="loader">
+            <div class="bar"><i id="loadbar"></i></div>
+            <p id="loadtext">Kartendaten werden geladen …</p>
+          </div>
+
+          <div id="menu-main" hidden>
+            <div class="btn-row">
+              <button id="btn-play" class="primary">Losfahren</button>
+              <button id="btn-freeroam">Freies Fahren</button>
+            </div>
+
+            <details class="panel" id="sv-panel">
+              <summary>🛣️ Google Street View verbinden <em id="sv-state">(nicht verbunden)</em></summary>
+              <p class="hint">
+                Mit einem eigenen Google-Maps-API-Key fährst du im echten Street-View-Panorama
+                und die Häuser bekommen ihre echten Fassaden als Textur.
+                Der Key bleibt nur in deinem Browser (localStorage) und wird an niemanden gesendet
+                außer an Google selbst.
+              </p>
+              <div class="field">
+                <input
+                  id="sv-key"
+                  type="password"
+                  placeholder="Google Maps API-Key (AIza…)"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button id="sv-save">Speichern</button>
+                <button id="sv-clear" class="ghost">Löschen</button>
+              </div>
+              <p class="hint small">
+                Key erstellen: Google Cloud Console → APIs &amp; Services → Credentials.
+                Benötigte APIs: <b>Maps JavaScript API</b>, <b>Street View Static API</b>.
+                Ohne Key läuft alles trotzdem — dann in stilisierter Steiermark-Optik.
+              </p>
+            </details>
+
+            <details class="panel">
+              <summary>🗺️ Kartendaten</summary>
+              <p class="hint" id="map-source">—</p>
+              <div class="field">
+                <button id="btn-refetch">Straßen neu von OpenStreetMap laden</button>
+              </div>
+              <p class="hint small">
+                Das Straßennetz, die Gebäudegrundrisse, der Murlauf und die Murtalbahn
+                stammen aus OpenStreetMap (ODbL). Beim ersten Laden werden sie live von der
+                Overpass-API geholt und danach im Browser zwischengespeichert.
+              </p>
+            </details>
+
+            <details class="panel">
+              <summary>🎮 Steuerung</summary>
+              <table class="keys">
+                <tr><td>W / ↑</td><td>Gas</td><td>S / ↓</td><td>Bremse &amp; Rückwärts</td></tr>
+                <tr><td>A / D · ← →</td><td>Lenken</td><td>Leertaste</td><td>Handbremse (Drift)</td></tr>
+                <tr><td>C</td><td>Kamera wechseln</td><td>V</td><td>Street-View-Modus</td></tr>
+                <tr><td>H</td><td>Hupe</td><td>L</td><td>Licht</td></tr>
+                <tr><td>R</td><td>Auto zurücksetzen</td><td>M</td><td>Große Karte</td></tr>
+                <tr><td>F</td><td>Fahrzeug wechseln</td><td>P</td><td>Pause</td></tr>
+              </table>
+              <p class="hint small">Am Handy: Touch-Pedale und Lenkung werden automatisch eingeblendet.</p>
+            </details>
+
+            <p class="credits">
+              Kartendaten © OpenStreetMap-Mitwirkende (ODbL) · Panoramen &amp; Fassadenfotos © Google
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Große Karte -->
+      <div id="bigmap" class="bigmap" hidden>
+        <canvas id="bigmap-canvas"></canvas>
+        <div class="bigmap-hint">M oder Esc zum Schließen · Klick setzt einen Wegpunkt</div>
+      </div>
+
+      <!-- Pause -->
+      <div id="pause" class="overlay" hidden>
+        <div class="overlay-card">
+          <h2>Pause</h2>
+          <div class="btn-row">
+            <button id="btn-resume" class="primary">Weiter</button>
+            <button id="btn-tomenu">Hauptmenü</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Touch-Steuerung -->
+      <div id="touch" class="touch" hidden>
+        <div class="touch-steer">
+          <button data-key="left" class="tbtn">◀</button>
+          <button data-key="right" class="tbtn">▶</button>
+        </div>
+        <div class="touch-pedals">
+          <button data-key="brake" class="tbtn">BR</button>
+          <button data-key="hand" class="tbtn">HB</button>
+          <button data-key="gas" class="tbtn gas">GAS</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

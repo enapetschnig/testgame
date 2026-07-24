@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# API-Keys gehoeren niemals ins Repository.
+.env
+.env.local
+.env.*.local
+
+# Ergebnis von `npm run bake:map`
+src/data/frojachOsm.json
+
+# Testartefakte
+/smoke.mjs
+/probe.mjs
+/shot.mjs
+/svtest.mjs
+/shots/
+/e2e.mjs
