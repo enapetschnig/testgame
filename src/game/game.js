@@ -93,31 +93,65 @@ export async function createGame({ dom, map, onProgress = () => {} }) {
   composer.setSize(window.innerWidth, window.innerHeight);
 
   /**
-   * Wenn die Bildrate einbricht, wird selbsttaetig Ballast abgeworfen —
-   * erst das Bloom, dann die Schatten. Lieber fluessig als huebsch.
+   * Bildratenregelung.
+   *
+   * Bricht die Bildrate dauerhaft ein, wird Ballast abgeworfen — erst das
+   * Bloom, dann die Schatten. Wird es wieder schnell, kommt beides zurueck.
+   *
+   * Bewusst traege: die ersten Sekunden nach dem Start sind wegen Shader-
+   * Kompilierung und Texturupload immer langsam, und ein einzelner Ruckler
+   * darf nicht gleich die Optik kosten. Deshalb Aufwaermphase, langes
+   * Mittel und getrennte Schwellen fuer Ab- und Aufstufung (Hysterese).
    */
-  const perf = { avgMs: 16, level: 2, cooldown: 3 };
+  const perf = { avgMs: 16, level: 2, warmup: 4, hold: 0 };
+
+  function setQualityLevel(level) {
+    perf.level = level;
+    bloom.enabled = level >= 2;
+    const wantShadows = level >= 1;
+    if (renderer.shadowMap.enabled !== wantShadows) {
+      renderer.shadowMap.enabled = wantShadows;
+      // Materialien muessen neu uebersetzt werden, wenn sich der
+      // Schattenzustand aendert.
+      scene.traverse((o) => {
+        if (o.isMesh && o.material) {
+          if (Array.isArray(o.material)) o.material.forEach((m) => (m.needsUpdate = true));
+          else o.material.needsUpdate = true;
+        }
+      });
+    }
+  }
 
   function adaptQuality(ms) {
-    perf.avgMs = perf.avgMs * 0.94 + ms * 0.06;
-    if (perf.cooldown > 0) {
-      perf.cooldown -= ms / 1000;
+    if (perf.warmup > 0) {
+      perf.warmup -= ms / 1000;
       return;
     }
-    if (perf.avgMs > 42 && perf.level > 0) {
-      perf.level--;
-      perf.cooldown = 4;
-      if (perf.level === 1) {
-        bloom.enabled = false;
-        hud?.toast('Grafik: Bloom abgeschaltet (Bildrate)', '', 2200);
-      } else {
-        renderer.shadowMap.enabled = false;
-        scene.traverse((o) => {
-          if (o.isMesh) o.material && (o.material.needsUpdate = true);
-        });
-        hud?.toast('Grafik: Schatten abgeschaltet (Bildrate)', '', 2200);
-      }
+    perf.avgMs = perf.avgMs * 0.96 + ms * 0.04;
+    if (perf.hold > 0) {
+      perf.hold -= ms / 1000;
+      return;
     }
+
+    if (perf.avgMs > 45 && perf.level > 0) {
+      setQualityLevel(perf.level - 1);
+      perf.hold = 6;
+      hud?.toast(
+        perf.level === 1 ? 'Grafik: Bloom aus (Bildrate)' : 'Grafik: Schatten aus (Bildrate)',
+        '',
+        2200,
+      );
+    } else if (perf.avgMs < 20 && perf.level < 2) {
+      setQualityLevel(perf.level + 1);
+      perf.hold = 10;
+    }
+  }
+
+  /** Grafikstufe von aussen setzen (2 = alles an, 1 = ohne Bloom, 0 = flach). */
+  function setQuality(level) {
+    perf.warmup = 0;
+    perf.hold = 1e9; // Automatik stilllegen, der Wunsch des Nutzers gilt
+    setQualityLevel(level);
   }
 
   // ----------------------------------------------------------- Spielobjekte
@@ -331,7 +365,7 @@ export async function createGame({ dom, map, onProgress = () => {} }) {
     // Tageszeit: 1,5 Spielminuten je echter Sekunde — ein voller Tag mit
     // Sonnenaufgang ueber dem Puxberg dauert damit gut eine Viertelstunde.
     sky.state.time = (sky.state.time + dt * 1.5) % 1440;
-    const sun = sky.update(vehicle.x, vehicle.z);
+    const sun = sky.update(vehicle.x, vehicle.z, vehicle.y);
 
     // Automatisch Licht einschalten, wenn es daemmert
     if (sky.isNight && !vehicle.headlights) vehicle.headlights = true;
@@ -401,6 +435,7 @@ export async function createGame({ dom, map, onProgress = () => {} }) {
     },
 
     togglePause,
+    setQuality,
 
     /** Street-View-Statusmeldungen ans Menue weiterreichen. */
     onStreetViewStatus(cb) {

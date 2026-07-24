@@ -11,10 +11,13 @@ dist/
 # Ergebnis von `npm run bake:map`
 src/data/frojachOsm.json
 
-# Testartefakte
+# Wegwerf-Testskripte (Playwright), nicht Teil des Projekts
 /smoke.mjs
 /probe.mjs
 /shot.mjs
+/shots.mjs
 /svtest.mjs
-/shots/
 /e2e.mjs
+/final.mjs
+/diag*.mjs
+/shots/

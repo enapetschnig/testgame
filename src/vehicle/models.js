@@ -270,7 +270,7 @@ export const SPECS = {
   hatch: {
     label: 'Kleinwagen',
     mass: 1150,
-    power: 8600, // N bei Standgas-Drehzahl, faellt mit Tempo ab
+    power: 5400, // N; /Masse ergibt ~4,7 m/s2 -> 0-100 in rund 6 s
     topSpeed: 47, // m/s ~ 169 km/h
     brake: 13500,
     grip: 11.5,
@@ -283,7 +283,7 @@ export const SPECS = {
   wagon: {
     label: 'Kombi',
     mass: 1480,
-    power: 10200,
+    power: 6600, // ~4,5 m/s2
     topSpeed: 51,
     brake: 15200,
     grip: 11.0,
@@ -296,7 +296,7 @@ export const SPECS = {
   sport: {
     label: 'Sportwagen',
     mass: 1320,
-    power: 17500,
+    power: 11000, // ~8,3 m/s2 -> 0-100 in gut 3 s
     topSpeed: 74, // ~266 km/h
     brake: 19000,
     grip: 14.5,
@@ -310,7 +310,7 @@ export const SPECS = {
   tractor: {
     label: 'Traktor',
     mass: 3400,
-    power: 16000,
+    power: 9000, // zieht kraeftig, kommt aber nicht ueber 43 km/h
     topSpeed: 12, // ~43 km/h, mehr geht nicht
     brake: 11000,
     grip: 9.5,

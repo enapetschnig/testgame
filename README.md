@@ -8,7 +8,7 @@ Ortsdurchfahrt, die Abzweigung ins Katschtal, die Murbrücke ans andere Ufer,
 die Murtalbahn quer durchs Tal, dahinter die Hänge zum Puxberg. Einsteigen,
 losfahren, hinschauen.
 
-![Frojach Drive](docs/frojach-chase.png)
+![Auf der B 96 durch Frojach](docs/frojach-chase.png)
 
 ---
 

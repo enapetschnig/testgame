@@ -20,8 +20,12 @@ const VALLEY_FLOOR = 760; // m ue. A.
 const CELL = 14; // Aufloesung des Hoehenfelds in Metern
 const PAD = 400; // Ueberstand ueber die Weltgrenze hinaus
 
-/** Kantenlaenge einer Bodentextur-Kachel in Metern. */
-const MEADOW_TILE = 9;
+/**
+ * Kantenlaenge einer Bodentextur-Kachel in Metern. Groesser heisst weniger
+ * sichtbare Wiederholung aus der Ferne, kleiner heisst mehr Struktur direkt
+ * vor der Motorhaube. Zwoelf Meter ist der Kompromiss.
+ */
+const MEADOW_TILE = 12;
 
 let meadowTex = null;
 

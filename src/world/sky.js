@@ -34,8 +34,11 @@ export function createSky(scene, renderer) {
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 1;
   sun.shadow.camera.far = 900;
-  sun.shadow.bias = -0.0006;
-  sun.shadow.normalBias = 0.6;
+  // Die Schattenkarte deckt 380 m mit 2048 Texeln ab, also rund 19 cm je
+  // Texel. Der normalBias muss in dieser Groessenordnung bleiben — bei
+  // deutlich mehr verschwinden Schlagschatten von Autos und Haeusern ganz.
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.08;
   const S = 190; // Halbe Kantenlaenge des Schattenbereichs um das Auto
   sun.shadow.camera.left = -S;
   sun.shadow.camera.right = S;
@@ -118,7 +121,14 @@ export function createSky(scene, renderer) {
   const sunCol = new THREE.Color();
   const nightSky = new THREE.Color(0x0a1220);
 
-  function update(centerX = 0, centerZ = 0) {
+  /**
+   * @param {number} centerX Weltposition, um die der Schattenbereich liegt
+   * @param {number} centerZ
+   * @param {number} centerY Hoehe ueber Adria — im Murtal rund 760 m. Ohne
+   *   diesen Wert saesse die Schattenkamera auf Meereshoehe und damit weit
+   *   unter dem Gelaende; es faellt dann ueberhaupt kein Schatten.
+   */
+  function update(centerX = 0, centerZ = 0, centerY = 760) {
     const { alt, az } = sunPosition(state.time, state.season);
 
     // Azimut 0 = Nord, im Uhrzeigersinn. Lokale Achsen: -z = Nord.
@@ -131,8 +141,9 @@ export function createSky(scene, renderer) {
     const day = smoothstep(clamp((alt + 0.105) / 0.245, 0, 1));
     const golden = 1 - smoothstep(clamp(alt / 0.28, 0, 1));
 
-    sun.position.copy(sunDir).multiplyScalar(420).add(new THREE.Vector3(centerX, 0, centerZ));
-    sun.target.position.set(centerX, 0, centerZ);
+    sun.position.copy(sunDir).multiplyScalar(420).add(new THREE.Vector3(centerX, centerY, centerZ));
+    sun.target.position.set(centerX, centerY, centerZ);
+    sun.target.updateMatrixWorld();
     sun.intensity = day * 3.4;
 
     // Sonnenfarbe: tief stehend warm, hoch stehend neutral.
